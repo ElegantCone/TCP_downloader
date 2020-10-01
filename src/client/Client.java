@@ -3,8 +3,6 @@ package client;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
-import java.util.Arrays;
 
 public class Client extends Thread {
 
@@ -19,11 +17,10 @@ public class Client extends Thread {
         this.socket = new Socket(addr, port);
         this.address = addr;
         this.port = port;
-        //socket.setSoTimeout(3000);
         String absFilename = new File(filename).getAbsolutePath();
         this.file = new File(absFilename);
         if (file.exists()){
-            fileSize = file.length(); //size in bytes
+            fileSize = file.length();
             this.filename = file.getName().getBytes();
         }
         else {
@@ -52,7 +49,6 @@ public class Client extends Thread {
     private void sendFile() throws IOException {
         int BUF_SIZE = 4096;
         byte[] buf = new byte[BUF_SIZE];
-        byte answ;
         int sentBytes = 0;
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
         while(sentBytes < fileSize){
