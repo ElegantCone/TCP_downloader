@@ -33,14 +33,14 @@ public class Client extends Thread {
 
     public void run(){
         try {
-            sendInfo();
             System.out.println("Sending info about file...");
-            //Thread.sleep(1000);
+            sendInfo();
+            System.out.println("Sending file...");
             sendFile();
             socket.close();
         } catch (IOException e) {
             try {
-                System.out.println("Failed!");
+                System.out.println("Failed! :^(");
                 socket.close();
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -54,8 +54,6 @@ public class Client extends Thread {
         byte[] buf = new byte[BUF_SIZE];
         byte answ;
         int sentBytes = 0;
-        /*BufferedInputStream bifs = new BufferedInputStream(new FileInputStream(file));
-        BufferedOutputStream bos = new BufferedOutputStream(socket.getOutputStream());*/
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
         while(sentBytes < fileSize){
             int sendSize = bis.read(buf, 0, BUF_SIZE);
@@ -63,9 +61,8 @@ public class Client extends Thread {
             sentBytes += sendSize;
         }
         socket.getInputStream().read(buf, 0, 1);
-        System.out.println(buf[0]);
+        if (buf[0] == 0) System.out.println("Successful! :^)");
         bis.close();
-        //bos.close();
     }
 
     private void sendInfo() throws IOException {
