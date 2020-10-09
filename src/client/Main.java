@@ -22,8 +22,6 @@ public class Main {
             int port = Integer.parseInt(args[2]);
             Client client = new Client(filename, addr, port);
             client.start();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

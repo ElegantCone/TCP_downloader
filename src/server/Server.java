@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 public class Server extends Thread {
@@ -21,6 +22,11 @@ public class Server extends Thread {
             uploadDir = new File(new File(".").getCanonicalPath() + dir);
             uploadDir.mkdir();
         } catch (IOException e) {
+            try {
+                server.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
             e.printStackTrace();
         }
     }
@@ -31,9 +37,16 @@ public class Server extends Thread {
                 Socket client = server.accept();
                 clients.add(new ClientHandler(client, uploadDir));
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
+        finally {
+            try {
+                server.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 }

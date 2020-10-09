@@ -6,12 +6,14 @@ import java.util.Date;
 
 public class ClientHandler extends Thread {
     private Socket client;
-    public File uploadDir;
-    public File uploadFile;
-    public long filesize;
-    public String filename;
-    public byte[] nameLenBuf = new byte[2];
-    public byte[] fileSizeBuf = new byte[8];
+    private File uploadDir;
+    private File uploadFile;
+    private long filesize;
+    private String filename;
+    private byte[] nameLenBuf = new byte[2];
+    private byte[] fileSizeBuf = new byte[8];
+    private DataInputStream inputStream;
+    private FileOutputStream ofs;
 
     ClientHandler(Socket client, File uploadDir){
         this.client = client;
@@ -26,13 +28,17 @@ public class ClientHandler extends Thread {
             createFile();
             recvFile();
         } catch (IOException | ReceiveException e) {
+            uploadFile.delete();
+            e.printStackTrace();
+        }
+        finally {
             try {
+                inputStream.close();
+                ofs.close();
                 client.close();
-                uploadFile.delete();
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            e.printStackTrace();
         }
     }
 
@@ -54,47 +60,44 @@ public class ClientHandler extends Thread {
     }
 
     private void recvFile() throws IOException, ReceiveException {
-        DataInputStream is = new DataInputStream(client.getInputStream());
-        DataOutputStream ofs = new DataOutputStream(new FileOutputStream(uploadFile));
+        ofs = new FileOutputStream(uploadFile);
         int BUF_SIZE = 4096;
         long lastRecv = 0;
-        byte []buf = new byte[BUF_SIZE];
+        byte[] buf = new byte[BUF_SIZE];
         long uplDataSize = 0;
         Date startTime = new Date();
         Date curTime = new Date();
-        while (is.read(buf) > 0) {
-            if (filesize - uplDataSize < BUF_SIZE){
+        while (client.getInputStream().read(buf) > 0) {
+            if (filesize - uplDataSize < BUF_SIZE) {
                 ofs.write(buf, 0, (int) (filesize - uplDataSize));
                 uplDataSize += filesize - uplDataSize;
                 break;
             }
             ofs.write(buf);
             uplDataSize += buf.length;
-            buf = new byte[BUF_SIZE];
-            if (new Date().getTime() - curTime.getTime() > 3000){
+            //buf = new byte[BUF_SIZE];
+            if (new Date().getTime() - curTime.getTime() > 3000) {
                 System.out.println(
                         "Client " + client.getInetAddress() +
-                        ":\nAverage speed: " + uplDataSize/((new Date().getTime() - startTime.getTime())*1024/1000) +
-                        " Kb/sec\nCurrent speed: " + (uplDataSize - lastRecv)/((new Date().getTime() - curTime.getTime())*1024/1000) +
-                        " Kb/sec");
+                                ":\nAverage speed: " + uplDataSize / ((new Date().getTime() - startTime.getTime()) * 1024 / 1000) +
+                                " Kb/sec\nCurrent speed: " + (uplDataSize - lastRecv) / ((new Date().getTime() - curTime.getTime()) * 1024 / 1000) +
+                                " Kb/sec");
                 curTime = new Date();
                 lastRecv = uplDataSize;
             }
         }
         client.getOutputStream().write(0);
         client.getOutputStream().flush();
-
-        if (uplDataSize != filesize){
-            System.out.println("Something goes wrong. \nDownloaded data size: " + uplDataSize +"\nMust be: " + filesize);
+        System.out.println("File received");
+        if (uplDataSize != filesize) {
+            System.out.println("Something goes wrong. \nDownloaded data size: " + uplDataSize + "\nMust be: " + filesize);
             client.getOutputStream().write(1);
-            ofs.close();
             throw new ReceiveException();
         }
-        ofs.close();
-    }
+}
 
     private void recvInfo() throws IOException {
-        DataInputStream inputStream = new DataInputStream(client.getInputStream());
+        inputStream = new DataInputStream(client.getInputStream());
         inputStream.readFully(nameLenBuf);
         inputStream.readFully(fileSizeBuf);
         byte[] filenameBuf = new byte[bytesToShort(nameLenBuf)];

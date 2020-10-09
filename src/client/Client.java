@@ -34,15 +34,16 @@ public class Client extends Thread {
             sendInfo();
             System.out.println("Sending file...");
             sendFile();
-            socket.close();
         } catch (IOException e) {
-            try {
-                System.out.println("Failed! :^(");
-                socket.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
+            System.out.println("Failed! :^(");
             e.printStackTrace();
+        }
+        finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -50,23 +51,38 @@ public class Client extends Thread {
         int BUF_SIZE = 4096;
         byte[] buf = new byte[BUF_SIZE];
         int sentBytes = 0;
-        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-        while(sentBytes < fileSize){
-            int sendSize = bis.read(buf, 0, BUF_SIZE);
-            socket.getOutputStream().write(buf, 0, sendSize);
-            sentBytes += sendSize;
+        FileInputStream bis = null;
+        try {
+            bis = new FileInputStream(file);
+            while (sentBytes < fileSize) {
+                int sendSize = bis.read(buf, 0, BUF_SIZE);
+                socket.getOutputStream().write(buf, 0, sendSize);
+                socket.getOutputStream().flush();
+                sentBytes += sendSize;
+                buf = new byte[BUF_SIZE];
+            }
+            socket.getInputStream().read(buf, 0, 1);
+            if (buf[0] == 0) System.out.println("Successful! :^)");
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                bis.close();
+            } catch (IOException | NullPointerException e) {
+                e.printStackTrace();
+            }
         }
-        socket.getInputStream().read(buf, 0, 1);
-        if (buf[0] == 0) System.out.println("Successful! :^)");
-        bis.close();
     }
 
     private void sendInfo() throws IOException {
-        byte[] fileInfo = new byte[10 + filename.length];
+        byte[] fileInfo = new byte[10];
         numToBytes(fileInfo, (short)filename.length, 0);
         numToBytes(fileInfo, fileSize, 2);
         socket.getOutputStream().write(fileInfo, 0, 10);
+        socket.getOutputStream().flush();
         socket.getOutputStream().write(filename);
+        socket.getOutputStream().flush();
     }
 
     private void numToBytes(byte[] buf, short n, int offset) {
@@ -82,5 +98,7 @@ public class Client extends Thread {
             n /= 256;
         }
     }
+
+
 
 }
